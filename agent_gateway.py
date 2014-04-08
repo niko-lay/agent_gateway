@@ -32,6 +32,42 @@ logging.basicConfig(filename='agent_gateway.log',
         level=logging.DEBUG)
 logger = logging.getLogger('agent_gateway')
 
+config_file='/etc/motrixi/agent_gateway/agent_gateway.config'
+config = ConfigParser.ConfigParser()
+config.read(config_file)
+
+AGENT_CONFIG_SERVER = config.get('global', 'AGENT_CONFIG_SERVER')
+GATEWAY_IP = config.get('global', 'GATEWAY_IP')
+GATEWAY_PORT = int(config.get('global', 'GATEWAY_PORT'))
+BASE_PATH = config.get('global', 'BASE_PATH')
+
+logger.warning('AGENT_CONFIG_SERVER: %s' % AGENT_CONFIG_SERVER)
+logger.warning('GATEWAY_IP: %s' % GATEWAY_IP)
+logger.warning('GATEWAY_PORT: %d' % GATEWAY_PORT)
+logger.warning('BASE_PATH: %s' % BASE_PATH)
+
+exec_base_path   = os.path.join(BASE_PATH, 'build/x86_64/bin')
+config_base_path = BASE_PATH
+log_base_path    = os.path.join(BASE_PATH, 'logs')
+bidders_config_base_path = os.path.join(os.getcwd(), json_path)
+logger.warning('bidders_config_base_path: %s' % str(bidders_config_base_path))
+
+# check if the pickle_path exists
+if not os.path.exists(pickle_path):
+    os.mkdir(pickle_path)
+# check if the json_path exists
+if not os.path.exists(json_path):
+    os.mkdir(json_path)
+
+# for each pickled process reload the configuration
+for config in os.listdir(pickle_path):
+    f = open(os.path.join(pickle_path, config), 'rb')
+    c = pickle.load(f)
+    bidders[c['bidder_name']] = c
+    f.close()
+    logger.warning('loaded agent %s=%s' % (c['bidder_name'], c))
+
+
 # app bottle
 application = app = Bottle()
 
@@ -125,6 +161,7 @@ def start_bidder(name):
     # create a file with the json configuration
     conf_file_name = os.path.join(
         bidders_config_base_path, '%s.conf.json' % name)    
+    logger.info('conf_file_name : %s' % conf_file_name)
     try :
         conf_file = open(conf_file_name, 'w')
         conf_file.write(json.dumps(request.json))
@@ -159,6 +196,8 @@ def start_bidder(name):
             os.path.join(log_base_path, 'agent_%s.log' % name))
     except :
         pass
+    logger.info('log_file_name %s' % log_file_name)
+    logger.info('join %s' % os.path.join(log_base_path, 'agent_%s.log' % name))
     os.symlink(log_file_name, 
             os.path.join(log_base_path, 'agent_%s.log' % name))
 
@@ -311,70 +350,3 @@ def get_status(name):
     result['resultDescription'] = 'up'    
     return result
 
-
-class custom_application:
-    '''
-        Main app exposed
-    '''
-
-    def __init__(self,
-          config_file='/etc/motrixi/agent_gwateway/agent_gateway.config',
-          uwsgi_params=None):
-        '''
-            init everything
-        '''
-        self.app = app
-
-        # load configuration 
-        self.config = ConfigParser.ConfigParser()
-        self.config.read(config_file)
-
-        global AGENT_CONFIG_SERVER
-        global GATEWAY_IP
-        global GATEWAY_PORT
-        global BASE_PATH
-
-        AGENT_CONFIG_SERVER = self.config.get('global', 'AGENT_CONFIG_SERVER')
-        GATEWAY_IP = self.config.get('global', 'GATEWAY_IP')
-        GATEWAY_PORT = int(self.config.get('global', 'GATEWAY_PORT'))
-        BASE_PATH = self.config.get('global', 'BASE_PATH')
-
-        logger.warning('AGENT_CONFIG_SERVER: %s' % AGENT_CONFIG_SERVER)
-        logger.warning('GATEWAY_IP: %s' % GATEWAY_IP)
-        logger.warning('GATEWAY_PORT: %d' % GATEWAY_PORT)
-        logger.warning('BASE_PATH: %s' % BASE_PATH)
-
-        global exec_base_path
-        global config_base_path
-        global log_base_path
-        global bidders_config_base_path
-
-        exec_base_path   = os.path.join(BASE_PATH, 'build/x86_64/bin')
-        config_base_path = BASE_PATH
-        log_base_path    = os.path.join(BASE_PATH, 'logs')
-        bidders_config_base_path = os.path.join(os.getcwd(), json_path)
-
-
-        # check if the pickle_path exists
-        if not os.path.exists(pickle_path):
-              os.mkdir(pickle_path)
-        # check if the json_path exists
-        if not os.path.exists(json_path):
-              os.mkdir(json_path)
-
-        # for each pickled process reload the configuration
-        for config in os.listdir(pickle_path):
-            f = open(os.path.join(pickle_path, config), 'rb')
-            c = pickle.load(f)
-            bidders[c['bidder_name']] = c
-            f.close() 
-            logger.warning('loaded agent %s=%s' % (c['bidder_name'], c))
-
-        self.run()
-
-    def run(self):
-        '''
-            run the development bottle server
-        '''
-        logger.warning('starting up server')    
-        run(self.app, host=GATEWAY_IP, port=GATEWAY_PORT, reloader=False)
