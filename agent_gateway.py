@@ -59,6 +59,9 @@ if not os.path.exists(pickle_path):
 if not os.path.exists(json_path):
     os.mkdir(json_path)
 
+# initialize bidder map
+bidders = {}
+
 # for each pickled process reload the configuration
 for config in os.listdir(pickle_path):
     f = open(os.path.join(pickle_path, config), 'rb')
@@ -70,10 +73,6 @@ for config in os.listdir(pickle_path):
 
 # app bottle
 application = app = Bottle()
-
-# initialize bidder map
-bidders = {}
-
 
 
 def map_and_redirect(uri, name):
@@ -95,32 +94,32 @@ def map_and_redirect(uri, name):
                 Content_Type='application/json')
     raise HTTPResponse("", status=302, Location=location)
 
-@app.get('/v1/agents')
-def get_agents():
+@app.get('/v1/<node_id>/agents')
+def get_agents(node_id):
     """
         returns the list of bidders
     """
     return '%s' % bidders.keys()
 
-@app.post('/v1/agents/<name>/config')
-@app.get('/v1/agents/<name>/config')
-def get_config(name):
+@app.post('/v1/<node_id>/agents/<name>/config')
+@app.get('/v1/<node_id>/agents/<name>/config')
+def get_config(node_id, name):
     """
         redirects the call to the agent configuration service
         on /v1/agents/<name>/config for the given name
     """
     return map_and_redirect('/v1/agents/%s/config', name)
 
-@app.post('/v1/agents/<name>/heartbeat')
-def heartbeat(name):
+@app.post('/v1/<node_id>/agents/<name>/heartbeat')
+def heartbeat(node_id, name):
     """
         redirects the call to the agent configuration service
         on /v1/agents/<name>/heartbeat for the given name
     """
     return map_and_redirect('/v1/agents/%s/heartbeat', name)
     
-@app.get('/v1/agents/all')
-def get_all():
+@app.get('/v1/<node_id>/agents/all')
+def get_all(node_id):
     """
         redirects the call to the agent configuration service
         on /v1/agents/all
@@ -128,8 +127,8 @@ def get_all():
     location = urljoin(AGENT_CONFIG_SERVER, '/v1/agents/all')
     raise HTTPResponse("", status=302, Location=location)
 
-@app.post('/v1/agents/<name>/start')
-def start_bidder(name):
+@app.post('/v1/<node_id>/agents/<name>/start')
+def start_bidder(node_id, name):
     """
         Starts up a bidder using as the instance parameters
         the arguments passed in the query string 
@@ -271,8 +270,8 @@ def start_bidder(name):
     return result
     
 
-@app.post('/v1/agents/<name>/stop')
-def stop_bidder(name):
+@app.post('/v1/<node_id>/agents/<name>/stop')
+def stop_bidder(node_id, name):
     """
         Stops a running agent
     """
@@ -317,8 +316,8 @@ def stop_bidder(name):
                 Content_Type='application/json')    
     return result
 
-@app.get('/v1/agents/<name>/status')
-def get_status(name):
+@app.get('/v1/<node_id>/agents/<name>/status')
+def get_status(node_id, name):
     """
         retrieves the status of a given agent
     """
