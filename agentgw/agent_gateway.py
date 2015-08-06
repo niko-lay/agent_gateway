@@ -361,11 +361,17 @@ class application:
 
         # for each pickled process reload the configuration
         for config in os.listdir(pickle_path):
-            f = open(os.path.join(pickle_path, config), 'rb')
-            c = pickle.load(f)
-            bidders[c['bidder_name']] = c
-            f.close() 
-            logger.warning('loaded agent %s=%s' % (c['bidder_name'], c))
+            if config.isdigit():
+                #ToDo: add check bidder name too. If process with same pid was re-run
+                if not os.path.exists('/proc/%s' % config):
+                    logger.error('look like prosess with %s pid no longer exists' % config)
+                    os.unlink (os.path.join(pickle_path, config))
+                else:
+                    f = open(os.path.join(pickle_path, config), 'rb')
+                    c = pickle.load(f)
+                    bidders[c['bidder_name']] = c
+                    f.close() 
+                    logger.warning('loaded agent %s=%s' % (c['bidder_name'], c))
 
     def run(self):
         '''
@@ -374,5 +380,5 @@ class application:
         logger.warning('starting up server')    
         run(self.app, host=GATEWAY_IP, port=GATEWAY_PORT, reloader=False)
 
-    
+
 
