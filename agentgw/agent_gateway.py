@@ -63,7 +63,14 @@ def get_agents():
     """
         returns the list of bidders
     """
-    return '%s' % bidders.keys()
+    return HTTPResponse(json.dumps(bidders.keys()), status=200, Content_Type='application/json; charset=UTF8')
+
+@app.get('/v1/agents/full')
+def get_agents_full():
+    """
+        returns the list of bidders with full configs
+    """
+    return HTTPResponse(json.dumps(bidders), status=200, Content_Type='application/json; charset=UTF8')
 
 @app.post('/v1/agents/<name>/config')
 @app.get('/v1/agents/<name>/config')
