@@ -121,11 +121,12 @@ def start_bidder(name):
     # save the executable name and external name
     bidder['bidder_name'] = name
     bidder['executable'] = request.query['executable']  
+    bidder['tagid'] = request.query['tagid']
     # save the params
-    escape = lambda x : '"%s"' % x
+    escape = lambda x : '%s' % x
     bidder['params'] = {
          k:escape(v) for k,v in request.query.iteritems() 
-            if k not in ('executable', ) 
+            if k not in ('executable', 'tagid', )
     }
     
     # create a file with the json configuration
@@ -146,8 +147,8 @@ def start_bidder(name):
     arguments = []
     for k,v in bidder['params'].iteritems() :
         arguments.append('-%s' % k)
-        arguments.append(v)    
- 
+        arguments.append("'%s'" % v)
+
     exe = ['nohup']
     exe.append('./%s' % bidder['executable'])
     exe.extend(arguments)
@@ -157,7 +158,7 @@ def start_bidder(name):
     logger.info('executing : %s' % ' '.join(exe))
     
     # check the log file
-    log_file_name = 'agent_%s_%s.log' % (name, time.strftime('%d.%m.%Y_%H.%M.%S'))
+    log_file_name = 'agents/agent_%s_%s.log' % (name, time.strftime('%d.%m.%Y_%H.%M.%S'))
     log_path = os.path.join(log_base_path, log_file_name)
     #try to unlink and then relink
     try :
@@ -365,6 +366,11 @@ class application:
         # check if the json_path exists
         if not os.path.exists(json_path):
               os.mkdir(json_path)
+
+        # check if folder for logs exists
+        agent_logs = os.path.join(log_base_path, 'agents')
+        if not os.path.exists(agent_logs):
+              os.mkdir(agent_logs)
 
         # for each pickled process reload the configuration
         for config in os.listdir(pickle_path):
