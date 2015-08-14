@@ -9,7 +9,8 @@ import time
 import json
 import ConfigParser
 
-from bottle import Bottle, run, urljoin, HTTPResponse, request
+from bottle import Bottle, run, urljoin, HTTPResponse, request, BaseRequest
+BaseRequest.MEMFILE_MAX = 500 * 1024 * 1024
 
 AGENT_CONFIG_SERVER = None
 GATEWAY_IP          = None
